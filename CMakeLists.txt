@@ -38,12 +38,13 @@ FetchContent_MakeAvailable(backward-cpp)
 ## libraries
 ##
 add_library(powerz STATIC)
-target_sources(powerz PRIVATE src/libpowerz/serial.cpp)
-target_include_directories(powerz PUBLIC src/libpowerz)
-target_link_libraries(powerz PUBLIC fmt)
+target_sources(powerz PRIVATE powerz/serial.cpp powerz/kt001.cpp)
+target_include_directories(powerz PRIVATE include/powerz INTERFACE include)
+target_link_libraries(powerz PRIVATE fmt)
 
 ##
 ## binaries
 ##
-add_executable(main src/main.cpp ${BACKWARD_ENABLE})
-target_link_libraries(main PRIVATE -ldw powerz)
+add_executable(repl demo/repl.cpp ${BACKWARD_ENABLE})
+target_include_directories(repl PRIVATE demo)
+target_link_libraries(repl PRIVATE -ldw powerz)
