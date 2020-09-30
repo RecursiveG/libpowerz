@@ -109,21 +109,27 @@ std::optional<std::string> Serial::UnboundedCommand(std::string_view cmd,
                                                     SystemError *err,
                                                     uint64_t wait_ms,
                                                     uint64_t timeout_s) {
+    auto written = write(fd_, cmd.data(), cmd.size());
+    if (written != cmd.size()) {
+        auto e = errno;
+        if (err)
+            *err = {fmt::format("write(fd={},cmd=\"{}\") returned {}", fd_, cmd,
+                                written),
+                    e};
+        return {};
+    }
+    return WaitForSilence(err, wait_ms, timeout_s * 1000);
+}
+
+std::optional<std::string> Serial::WaitForSilence(SystemError *err,
+                                                  uint64_t wait_ms,
+                                                  uint64_t timeout_ms) {
     auto DeclareErr = [err](SystemError e) -> std::optional<std::string> {
         if (err) *err = std::move(e);
         return {};
     };
     auto now = std::chrono::high_resolution_clock::now;
     using std::chrono::milliseconds;
-    using std::chrono::seconds;
-
-    auto written = write(fd_, cmd.data(), cmd.size());
-    if (written != cmd.size()) {
-        auto e = errno;
-        return DeclareErr({fmt::format("write(fd={},cmd=\"{}\") returned {}",
-                                       fd_, cmd, written),
-                           e});
-    }
 
     std::string reply;
     constexpr size_t TMP_BUF_SIZE = 4096;
@@ -136,9 +142,10 @@ std::optional<std::string> Serial::UnboundedCommand(std::string_view cmd,
         if (red <= 0) {
             if (errno == EAGAIN) {
                 if (reply.empty()) {
-                    if (now() > last_polled + seconds(timeout_s)) {
-                        return DeclareErr(SystemError{fmt::format(
-                            "No reply received in {} seconds.", timeout_s)});
+                    if (now() > last_polled + milliseconds(timeout_ms)) {
+                        return DeclareErr(SystemError{
+                            fmt::format("No reply received in {} milliseconds.",
+                                        timeout_ms)});
                     }
                 } else {
                     if (now() > last_polled + milliseconds(wait_ms)) {

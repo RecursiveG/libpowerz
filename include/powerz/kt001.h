@@ -54,6 +54,7 @@ class KT001 {
     std::optional<bool> GetRecordExistence(RecordIndex idx,
                                            SystemError* err = nullptr);
     std::optional<Screenshot> GetScreenshot(SystemError* err = nullptr);
+    size_t WaitForSilence(uint64_t wait_ms = 1000);
 
   private:
     Serial serial_;

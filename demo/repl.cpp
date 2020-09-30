@@ -1,5 +1,6 @@
 #include <powerz/kt001.h>
 #include <powerz/serial.h>
+#include <unistd.h>
 
 #include <ctime>
 #include <fstream>
@@ -38,6 +39,8 @@ int main(int argc, char *argv[]) {
     SystemError sys_err{};
     KT001 kt001(unwrap(Serial::Connect(tty_dev, &sys_err), &sys_err));
     cout << "Device connected." << endl;
+    size_t junk_bytes = kt001.WaitForSilence();
+    cout << "Discarded " << junk_bytes << " junk bytes" << endl;
 
     unwrap_inverse(kt001.Handshake());
     cout << "Handshake successful." << endl;
@@ -59,6 +62,27 @@ int main(int argc, char *argv[]) {
             printf("  Power: %6.05fW\n", data.power_w);
             printf("     D+: %6.05fV\n", data.volt_dplus_v);
             printf("     D-: %6.05fV\n", data.volt_dminus_v);
+        } else if (cmd == "monitor") {
+            bool printed = false;
+            while (true) {
+#define CLEAR_LINE "\033[2K"
+#define CURSOR_UP "\033[1A"
+#define CURSOR_LINE_HEAD "\r"
+                auto data = unwrap(kt001.GetMeterReading(&sys_err), &sys_err);
+                if (printed) {
+                    printf(CLEAR_LINE CURSOR_UP CLEAR_LINE CURSOR_UP CLEAR_LINE
+                               CURSOR_UP CLEAR_LINE CURSOR_UP CLEAR_LINE
+                                   CURSOR_LINE_HEAD);
+                }
+                printf("Voltage: %6.05fV\n", data.voltage_v);
+                printf("Current: %6.05fA\n", data.current_a);
+                printf("  Power: %6.05fW\n", data.power_w);
+                printf("     D+: %6.05fV\n", data.volt_dplus_v);
+                printf("     D-: %6.05fV", data.volt_dminus_v);
+                cout.flush();
+                printed = true;
+            }
+            cout << endl;
         } else if (cmd == "get_ext_record") {
             auto data = unwrap(kt001.GetRecordExistence(&sys_err), &sys_err);
             auto print = [&data](RecordIndex idx) {
@@ -105,4 +129,3 @@ int main(int argc, char *argv[]) {
     }
     return 0;
 }
-

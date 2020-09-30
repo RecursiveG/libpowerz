@@ -111,4 +111,13 @@ optional<KT001::Screenshot> KT001::GetScreenshot(SystemError* err) {
     return ss;
 }
 
+size_t KT001::WaitForSilence(uint64_t wait_ms) {
+    auto data = serial_.WaitForSilence(nullptr, wait_ms, wait_ms);
+    if (data) {
+        return data->length();
+    } else {
+        return 0;
+    }
+}
+
 }  // namespace powerz

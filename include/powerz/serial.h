@@ -64,6 +64,9 @@ class Serial {
                                                 SystemError *err = nullptr,
                                                 uint64_t wait_ms = 100,
                                                 uint64_t timeout_s = 3);
+    std::optional<std::string> WaitForSilence(SystemError *err = nullptr,
+                                              uint64_t wait_ms = 1000,
+                                              uint64_t timeout_ms = 1000);
 
   private:
     Serial() = default;
